@@ -32,8 +32,10 @@ def binaryMatrix(l, value=PAD_TOKEN):
 
 def inputVar(l, voc):
     indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
+    print('input_index before to tensor:',indexes_batch)
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
+    print('input_index after padding with zero :',padList)
     padVar = torch.LongTensor(padList)
     return padVar, lengths
 
