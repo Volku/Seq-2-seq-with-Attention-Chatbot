@@ -45,10 +45,11 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     decoder_input = decoder_input.to(device)
 
     # Set initial decoder hidden state to the encoder's final hidden state
+
     decoder_hidden = encoder_hidden[:decoder.n_layers]
 
     for t in range(max_target_len):
-        print(decoder_hidden)
+        print(decoder)
         decoder_output, decoder_hidden = decoder(
             decoder_input, decoder_hidden, encoder_outputs
         )
@@ -96,7 +97,7 @@ def trainIters(  pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, 
         # Run a training iteration with batch
         loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
                      decoder, embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
-        print_loss.sum(loss)
+        print_loss+=loss
 
         # Print progress
         if iteration % print_every == 0:

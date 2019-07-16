@@ -1,6 +1,6 @@
 import torch
-import torch.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 #Encoder
@@ -13,20 +13,15 @@ class EncoderRnn(nn.Module):
         self.embedding = embedding
 
 
-        self.lstm = nn.LSTM(self.hidden_size,int(hidden_size/2),num_layers =n_layer,batch_first=True,
-                            dropout=(0 if n_layer == 1 else dropout),bidirectional= True)
-
+        self.lstm = nn.GRU(self.hidden_size,self.hidden_size ,num_layers =n_layer,
+                            dropout=(0 if n_layer == 1 else dropout))
+        print(self.lstm)
     def forward(self,input, input_length):
         embedded = self.embedding(input)
+        outputs, hidden = self.lstm(embedded,None)
 
-        packed = nn.utils.rnn.pack_padded_sequence(embedded,input_length)
-
-        outputs, hidden = self.lstm(packed,None)
-
-        outputs, _  = nn.utils.rnn.pad_packed_sequence(outputs)
-
-        outputs = outputs[:, :, :self.hidden_size] + outputs[:, :, self.hidden_size:]
         # Return output and final hidden state
+        print(hidden)
         return outputs, hidden
 
 # Luong attention layer
@@ -61,8 +56,8 @@ class LuongAttnDecoderRNN(nn.Module):
         # Define layers
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
-        self.gru = nn.LSTM(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
-        self.concat = nn.Linear(hidden_size *2, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
+        self.concat = nn.Linear(hidden_size*2,hidden_size,)
         self.out = nn.Linear(hidden_size, output_size)
 
         self.attn = Attn( hidden_size)
@@ -73,6 +68,7 @@ class LuongAttnDecoderRNN(nn.Module):
         embedded = self.embedding(input_step)
         embedded = self.embedding_dropout(embedded)
         # Forward through unidirectional GRU
+        print(embedded.size())
         rnn_output, hidden = self.gru(embedded, last_hidden)
         # Calculate attention weights from the current GRU output
         attn_weights = self.attn(rnn_output, encoder_outputs)
