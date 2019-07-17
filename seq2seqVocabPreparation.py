@@ -102,7 +102,7 @@ print("Counted words:", vocab.num_words)
 for pair in pairs[:10]:
     print(pair)
 
-MIN_COUNT = 8
+MIN_COUNT = 3
 
 def trimRareWords(voc, pairs, MIN_COUNT):
     # Trim words used under the MIN_COUNT from the voc
