@@ -3,4 +3,4 @@ Project at Shibaura Intitute of Technology as a Research Exchange Student
 
 Reference 
   1. https://pytorch.org/tutorials/beginner/chatbot_tutorial.html
-  2. https://github.com/Sanghoon94/DailyDialogue-Parser/blob/master/
+  2. https://github.com/Sanghoon94/DailyDialogue-Parser
