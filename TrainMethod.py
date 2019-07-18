@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 import SentenceToTensor
 import seq2seqVocabPreparation
@@ -42,58 +41,77 @@ def maskNLLLoss(inp, target, mask):
 
 teacher_forcing_ratio = 0.5
 
+def train(input_variable, lengths, target_variable, mask, max_target_len, encoder, decoder, embedding,
+          encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
 
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length=MAX_LENGTH,):
-
-    encoder_hidden = encoder.initHidden()
-
+    # Zero gradients
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
-    input_length = input_tensor.size(0)
-    target_length = target_tensor.size(0)
+    # Set device options
+    input_variable = input_variable.to(device)
+    lengths = lengths.to(device)
+    target_variable = target_variable.to(device)
+    mask = mask.to(device)
 
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
-
+    # Initialize variables
     loss = 0
+    print_losses = []
+    n_totals = 0
 
-    for ei in range(input_length):
-        encoder_output, encoder_hidden = encoder(
-            input_tensor[ei], encoder_hidden)
-        encoder_outputs[ei] = encoder_output[0, 0]
+    # Forward pass through encoder
+    encoder_outputs, encoder_hidden = encoder(input_variable, lengths)
 
-    decoder_input = torch.tensor([[SOS_TOKEN]], device=device)
+    # Create initial decoder input (start with SOS tokens for each sentence)
+    decoder_input = torch.LongTensor([[SOS_TOKEN for _ in range(batch_size)]])
+    decoder_input = decoder_input.to(device)
 
-    decoder_hidden = encoder_hidden
+    # Set initial decoder hidden state to the encoder's final hidden state
+    decoder_hidden = encoder_hidden[:decoder.n_layers]
 
+    # Determine if we are using teacher forcing this iteration
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
+    # Forward batch of sequences through decoder one time step at a time
     if use_teacher_forcing:
-        # Teacher forcing: Feed the target as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            loss += criterion(decoder_output, target_tensor[di])
-            decoder_input = target_tensor[di]  # Teacher forcing
-
+        for t in range(max_target_len):
+            decoder_output, decoder_hidden = decoder(
+                decoder_input, decoder_hidden, encoder_outputs
+            )
+            # Teacher forcing: next input is current target
+            decoder_input = target_variable[t].view(1, -1)
+            # Calculate and accumulate loss
+            mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
+            loss += mask_loss
+            print_losses.append(mask_loss.item() * nTotal)
+            n_totals += nTotal
     else:
-        # Without teacher forcing: use its own predictions as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            topv, topi = decoder_output.topk(1)
-            decoder_input = topi.squeeze().detach()  # detach from history as input
+        for t in range(max_target_len):
+            decoder_output, decoder_hidden = decoder(
+                decoder_input, decoder_hidden, encoder_outputs
+            )
+            # No teacher forcing: next input is decoder's own current output
+            _, topi = decoder_output.topk(1)
+            decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
+            decoder_input = decoder_input.to(device)
+            # Calculate and accumulate loss
+            mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
+            loss += mask_loss
+            print_losses.append(mask_loss.item() * nTotal)
+            n_totals += nTotal
 
-            loss += criterion(decoder_output, target_tensor[di])
-            if decoder_input.item() == EOS_TOKEN:
-                break
-
+    # Perform backpropatation
     loss.backward()
 
+    # Clip gradients: gradients are modified in place
+    _ = nn.utils.clip_grad_norm_(encoder.parameters(), clip)
+    _ = nn.utils.clip_grad_norm_(decoder.parameters(), clip)
+
+    # Adjust model weights
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() / target_length
+    return sum(print_losses) / n_totals
 
 def showPlot(points):
     plt.figure()
@@ -103,54 +121,52 @@ def showPlot(points):
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
 
-def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.025, gonnaLoad = False,filename='save/checkpoint.pth.tar'):
-    start = time.time()
-    plot_losses = []
-    print_loss_total = 0  # Reset every print_every
-    plot_loss_total = 0  # Reset every plot_every
+def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, encoder_n_layers, decoder_n_layers, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
-    training_pairs = [SentenceToTensor.tensorsFromPair(random.choice(pairs))
-                      for i in range(n_iters)]
-    criterion = nn.NLLLoss()
-    if gonnaLoad:
-        if os.path.isfile(filename):
-            checkpoint = torch.load(filename)
-            encoder.load_state_dict(checkpoint["EncoderRNN"])
-            decoder.load_state_dict(checkpoint["AttnDecoderRNN"])
-            encoder_optimizer.load_state_dict(checkpoint["encoder_optimizer"])
-            decoder_optimizer.load_state_dict(checkpoint["decoder_optimizer"])
+    # Load batches for each iteration
+    training_batches = [SentenceToTensor.batch2TrainData(voc, [random.choice(pairs) for _ in range(batch_size)])
+                      for _ in range(n_iteration)]
 
-    for iter in range(1, n_iters + 1):
-        training_pair = training_pairs[iter - 1]
-        input_tensor = training_pair[0]
-        target_tensor = training_pair[1]
+    # Initializations
+    print('Initializing ...')
+    start_iteration = 1
+    print_loss = 0
+    if loadFilename:
+        start_iteration = checkpoint['iteration'] + 1
 
-        loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion)
-        print_loss_total += loss
-        plot_loss_total += loss
+    # Training loop
+    print("Training...")
+    for iteration in range(start_iteration, n_iteration + 1):
+        training_batch = training_batches[iteration - 1]
+        # Extract fields from batch
+        input_variable, lengths, target_variable, mask, max_target_len = training_batch
 
-        if iter % print_every == 0:
-            print_loss_avg = print_loss_total / print_every
-            print_loss_total = 0
-            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
-                                         iter, iter / n_iters * 100, print_loss_avg))
+        # Run a training iteration with batch
+        loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
+                     decoder, embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
+        print_loss += loss
 
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
+        # Print progress
+        if iteration % print_every == 0:
+            print_loss_avg = print_loss / print_every
+            print("Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(iteration, iteration / n_iteration * 100, print_loss_avg))
+            print_loss = 0
 
-        if iter % 500 ==0:
+        # Save checkpoint
+        if (iteration % save_every == 0):
+            directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size))
+            if not os.path.exists(directory):
+                os.makedirs(directory)
             torch.save({
-                'EncoderRNN': encoder.state_dict(),
-                'AttnDecoderRNN': decoder.state_dict(),
-                'encoder_optimizer': encoder_optimizer.state_dict(),
-                'decoder_optimizer': decoder_optimizer.state_dict()
-            },"save/checkpoint.pth.tar")
-    showPlot(plot_losses)
+                'iteration': iteration,
+                'en': encoder.state_dict(),
+                'de': decoder.state_dict(),
+                'en_opt': encoder_optimizer.state_dict(),
+                'de_opt': decoder_optimizer.state_dict(),
+                'loss': loss,
+                'voc_dict': voc.__dict__,
+                'embedding': embedding.state_dict()
+            }, os.path.join(directory, '{}_{}.tar'.format(iteration, 'checkpoint')))
 
 
 

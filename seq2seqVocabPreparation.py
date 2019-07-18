@@ -65,22 +65,31 @@ def normalizeString(s):
     s = re.sub(r"\s+", r" ", s).strip()
     return s
 
-datafile = cornelDataPreprocess.datafile
+datafile = 'train/dial.txt'
 
 lines = open(datafile,encoding = 'utf-8').read().strip().split('\n')
+pairs = []
 
-pairs = [[normalizeString(s) for s in pair.split('\t')] for pair in lines]
+index= 0
+for id in range(0, len(lines), 2):
+   # print(lines[0])
+   pairs.append([])
+   pairs[index].append(normalizeString(lines[id]))
+   pairs[index].append(normalizeString(lines[id+1]))
+   index+=1
+
+
 
 
 
 vocab = Vocab(cornelDataPreprocess.corpus)
 
-MAX_LENGTH = 15
+MAX_LENGTH = 10
 
 def filterPair(p):
-    if p :
-        return len(p[0].split(' '))< MAX_LENGTH and len(p[1].split(' '))< MAX_LENGTH
-    else:
+   if p :
+       return len(p[0].split(' '))< MAX_LENGTH and len(p[1].split(' '))< MAX_LENGTH
+   else:
         return False
 
 #Use only the pair that length is not more than 15 words
@@ -95,14 +104,14 @@ print("After filtering there are {} pairs/conversations".format(len(pairs)))
 
 
 for pair in pairs:
-        vocab.addSentence(pair[0])
+        vocab.addSentence(pair[1])
         vocab.addSentence(pair[1])
 
 print("Counted words:", vocab.num_words)
 for pair in pairs[:10]:
     print(pair)
 
-MIN_COUNT = 3
+MIN_COUNT = 3    # Minimum word count threshold for trimming
 
 def trimRareWords(voc, pairs, MIN_COUNT):
     # Trim words used under the MIN_COUNT from the voc
@@ -133,5 +142,9 @@ def trimRareWords(voc, pairs, MIN_COUNT):
     return keep_pairs
 
 pairs = trimRareWords(vocab, pairs, MIN_COUNT)
+
+
+
+
 
 
