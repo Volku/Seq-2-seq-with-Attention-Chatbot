@@ -1,3 +1,5 @@
+import random
+
 import torch
 
 import SentenceToTensor
@@ -50,10 +52,11 @@ def evaluateInput(encoder, decoder, searcher, voc):
 
 def compareEval(encoder,decoder,searcher,voc):
 
-    for i in (0,5,1):
+    for i in (1,5):
+        randomIndex = random.randint(0,len(pairs)-1)
         index = 0
-        print("input: ",  pairs[i][index])
-        output_words = evaluate(encoder,decoder,searcher,voc,pairs[i][index])
+        print("input: ",  pairs[randomIndex][index])
+        output_words = evaluate(encoder,decoder,searcher,voc,pairs[randomIndex][index])
         output_words[:] = [x for x in output_words if not (x == 2 or x == 0)]
-        print("Actual: ", pairs[i][index+1] )
+        print("Actual: ", pairs[randomIndex][index+1] )
         print('Chatbot:',' '.join( output_words))
