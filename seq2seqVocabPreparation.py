@@ -46,7 +46,7 @@ class Vocab:
         #Re-init
         self.word2count = {}
         self.word2index = {}
-        self.index2word = {PAD_TOKEN:0,SOS_TOKEN:1,EOS_TOKEN:2}
+        self.index2word = {PAD_TOKEN:0,SOS_TOKEN:1 ,EOS_TOKEN:2}
         self.num_words = 3
 
         for word in keep_words:

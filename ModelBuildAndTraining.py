@@ -16,11 +16,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hidden_size = 500
 batch_size = 32
 loadFilename = None
-checkpoint_iter = 4000
+checkpoint_iter = 3500
 dropout= 0.1
-#loadFilename = os.path.join(save_dir, model_name, corpus_name,
-#                            '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size),
-#                            '{}_checkpoint.tar'.format(checkpoint_iter))
+
+#loadFilename = os.path.join("save", model_name,"Cornell_Movie_Dialogue",
+#                         '{}-{}_{}'.format(2, 2, hidden_size),
+#                        '{}_checkpoint.tar'.format(checkpoint_iter))
 
 
 # Load model if a loadFilename is provided
@@ -91,4 +92,7 @@ else:
     encoder.eval()
     decoder.eval()
     searcher = GreedySearchDecoder(encoder, decoder)
-    eval.evaluateInput(encoder, decoder, searcher, voc)
+    #1-5 and Compare
+    eval.compareEval(encoder,decoder,searcher,voc)
+    #Typing
+    #eval.evaluateInput(encoder, decoder, searcher, voc)

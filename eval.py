@@ -41,8 +41,19 @@ def evaluateInput(encoder, decoder, searcher, voc):
             # Evaluate sentence
             output_words = evaluate(encoder, decoder, searcher, voc, input_sentence)
             # Format and print response sentence
-            output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
+            output_words[:] = [x for x in output_words if not (x == 2 or x == 0)]
+            print(output_words)
             print('Bot:', ' '.join(output_words))
 
         except KeyError:
             print("Error: Encountered unknown word.")
+
+def compareEval(encoder,decoder,searcher,voc):
+
+    for i in (0,5,1):
+        index = 0
+        print("input: ",  pairs[i][index])
+        output_words = evaluate(encoder,decoder,searcher,voc,pairs[i][index])
+        output_words[:] = [x for x in output_words if not (x == 2 or x == 0)]
+        print("Actual: ", pairs[i][index+1] )
+        print('Chatbot:',' '.join( output_words))

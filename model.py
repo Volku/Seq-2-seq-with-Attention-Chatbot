@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-SOS_TOKEN = 1
+import seq2seqVocabPreparation
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+SOS_TOKEN = seq2seqVocabPreparation.EOS_TOKEN
 #Encoder
 
 class EncoderRNN(nn.Module):
@@ -127,7 +129,7 @@ class GreedySearchDecoder(nn.Module):
         # Prepare encoder's final hidden layer to be first hidden input to the decoder
         decoder_hidden = encoder_hidden[:self.decoder.n_layers]
         # Initialize decoder input with SOS_token
-        decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_token
+        decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_TOKEN
         # Initialize tensors to append decoded words to
         all_tokens = torch.zeros([0], device=device, dtype=torch.long)
         all_scores = torch.zeros([0], device=device)
