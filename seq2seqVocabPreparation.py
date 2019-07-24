@@ -1,8 +1,9 @@
+import os
 import re
 import unicodedata
 
-import cornelDataPreprocess
-
+corpus_name = "cornell movie-dialogs corpus"
+corpus = os.path.join(corpus_name)
 PAD_TOKEN = 0
 SOS_TOKEN = 1
 EOS_TOKEN = 2
@@ -82,7 +83,7 @@ for id in range(0, len(lines), 2):
 
 
 
-vocab = Vocab(cornelDataPreprocess.corpus)
+vocab = Vocab(corpus)
 
 MAX_LENGTH = 10
 

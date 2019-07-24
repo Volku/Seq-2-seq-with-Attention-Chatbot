@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,12 +18,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hidden_size = 500
 batch_size = 32
 loadFilename = None
-checkpoint_iter = 3500
+checkpoint_iter =6000
 dropout= 0.1
 
-#loadFilename = os.path.join("save", model_name,"Cornell_Movie_Dialogue",
-#                         '{}-{}_{}'.format(2, 2, hidden_size),
-#                        '{}_checkpoint.tar'.format(checkpoint_iter))
+loadFilename = os.path.join("save", model_name,"Cornell_Movie_Dialogue",
+                        '{}-{}_{}'.format(2, 2, hidden_size),
+                       '{}_checkpoint.tar'.format(checkpoint_iter))
 
 
 # Load model if a loadFilename is provided
@@ -61,7 +63,7 @@ mode = input("Train or Eval?:" )
 if mode == 'Train':
     # Configure training/optimization
     clip = 50.0
-    teacher_forcing_ratio = 1.0
+    teacher_forcing_ratio = 0.7
     learning_rate = 0.0001
     decoder_learning_ratio = 5.0
     n_iteration = 8000

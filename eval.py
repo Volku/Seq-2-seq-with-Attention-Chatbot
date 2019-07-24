@@ -52,11 +52,39 @@ def evaluateInput(encoder, decoder, searcher, voc):
 
 def compareEval(encoder,decoder,searcher,voc):
 
-    for i in (1,5):
-        randomIndex = random.randint(0,len(pairs)-1)
-        index = 0
-        print("input: ",  pairs[randomIndex][index])
-        output_words = evaluate(encoder,decoder,searcher,voc,pairs[randomIndex][index])
+    for i in range(1,11):
+        print("===============Short Answer Round ", i)
+        pair = random.choice(pairs)
+        question = pair[0]
+        answer = pair[1]
+        longEnough = len(question.split(' ')) < 7
+        while not longEnough:
+            pair = random.choice(pairs)
+            question = pair[0]
+            answer = pair[1]
+            longEnough = len(question.split(' ')) <7
+        print("input: ", question)
+        output_words = evaluate(encoder, decoder, searcher, voc, question)
         output_words[:] = [x for x in output_words if not (x == 2 or x == 0)]
-        print("Actual: ", pairs[randomIndex][index+1] )
-        print('Chatbot:',' '.join( output_words))
+        print("Actual: ", answer)
+        print('Chatbot:', ' '.join(output_words))
+        pair = random.choice(pairs)
+
+    for i in range(1,11):
+        print("================Long Answer Round ", i)
+        pair = random.choice(pairs)
+        question = pair[0]
+        answer = pair[1]
+        longEnough = len(question.split(' '))>=7
+        while not longEnough:
+            pair = random.choice(pairs)
+            question = pair[0]
+            answer = pair[1]
+            longEnough = len(question.split(' ')) >= 7
+        print("input: ", question)
+        output_words = evaluate(encoder, decoder, searcher, voc, question)
+        output_words[:] = [x for x in output_words if not (x == 2 or x == 0)]
+        print("Actual: ", answer)
+        print('Chatbot:', ' '.join(output_words))
+        pair = random.choice(pairs)
+

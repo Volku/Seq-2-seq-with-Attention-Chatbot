@@ -20,12 +20,12 @@ device = torch.device("cuda" if USE_CUDA else "cpu")
 pairs = seq2seqVocabPreparation.pairs
 hidden_size = 500
 model_name = "cb_model"
-checkpoint_iter = 8000
+checkpoint_iter = 6000
 
 loadFilename = None
-#loadFilename = os.path.join("save", model_name,"Cornell_Movie_Dialogue",
-#                         '{}-{}_{}'.format(2, 2, hidden_size),
- #                       '{}_checkpoint.tar'.format(checkpoint_iter))
+loadFilename = os.path.join("save", model_name,"Cornell_Movie_Dialogue",
+                         '{}-{}_{}'.format(2, 2, hidden_size),
+                        '{}_checkpoint.tar'.format(checkpoint_iter))
 # Load model if a loadFilename is provided
 if loadFilename:
     # If loading on same machine the model was trained on

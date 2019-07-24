@@ -88,8 +88,8 @@ def parse_data(in_dir, out_dir):
 
 
 def main(argv):
-    in_dir = 'ijcnlp_dailydialog/train'
-    out_dir = 'train'
+    in_dir = 'ijcnlp_dailydialog/test'
+    out_dir = 'test'
 
     try:
         opts, args = getopt.getopt(argv, "h:i:o:", ["in_dir=", "out_dir="])
